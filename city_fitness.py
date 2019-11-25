@@ -37,3 +37,18 @@ class Route:
 
     def __repr__ (self):
         return str(self.route) + str(self.routeLength)
+
+def readData (file):
+    cities = []
+    fileName = file + ".txt"
+    f = open(fileName, 'r')
+    for line in f:
+        id = int(line.split()[0])
+        x = float(line.split()[1])
+        y = float(line.split()[2])
+        city = City(id, x, y)
+        cities.append(city)
+    return cities
+
+if __name__ == "__main__":
+    print(readData("test1"))

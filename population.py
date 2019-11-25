@@ -1,10 +1,14 @@
-from city_fitness import City, Route
+from city_fitness import *
 import random
 import operator
 import numpy as np
 import pandas as pd
 import collections
 from matplotlib import pyplot as plt
+
+mutations1 = 0
+mutations2 = 0
+mutations3 = 0
 
 class Population:
     def __init__ (self, populationID, routesList, populationSize):
@@ -89,9 +93,11 @@ def breed (selectedRoutes, eliteNumber):
         children.append(crossover(selectedRoutes[i - eliteNumber].route, selectedRoutes[len(selectedRoutes) - i - eliteNumber - 1].route))
     return children
 
-def mutate (route, mutationProbability):
+def mutate1 (route, mutationProbability):
+    global mutations1
     for i in range(len(route)):
         if random.random() < mutationProbability:
+            mutations1 += 1
             j = int(random.random() * len(route))
             city1 = route[i]
             city2 = route[j]
@@ -99,12 +105,45 @@ def mutate (route, mutationProbability):
             route[j] = city1
     return Route(route)
 
+def mutate2 (route, mutationProbability):
+    global mutations2
+    for i in range(len(route)):
+        if random.random() < mutationProbability:
+            mutations2 += 1
+            j = int(random.random() * len(route))
+            k = int(random.random() * len(route))
+            city1 = route[i]
+            city2 = route[j]
+            city3 = route[k]
+            route[i] = city3
+            route[j] = city1
+            route[k] = city2
+        return Route(route)
+
+def mutate3 (route, mutationProbability):
+    global mutations3
+    for i in range(len(route)):
+        if random.random() < mutationProbability:
+            mutations3 += 1
+            city = route[i]
+            del(route[i])
+            j = int(random.random() * len(route))
+            route.insert(j, city)
+    return Route(route)
+
 def mutatePopulation (children, eliteNumber, mutationProbability):
     mutatedChildren = []
+    numbers = [1, 2, 3]
     for i in range(0, eliteNumber):
         mutatedChildren.append(children[i])
     for i in range(eliteNumber, len(children)):
-        mutatedChildren.append(mutate(children[i].route, mutationProbability))
+        nr = random.choice(numbers)
+        if nr == 1:
+            mutatedChildren.append(mutate1(children[i].route, mutationProbability))
+        elif nr == 2:
+            mutatedChildren.append(mutate2(children[i].route, mutationProbability))
+        elif nr == 3:
+            mutatedChildren.append(mutate3(children[i].route, mutationProbability))
     return mutatedChildren
 
 def nextGeneration (population, eliteNumber, mutationProbability):
@@ -138,7 +177,7 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
         worstValues.append(population.worstValue)
         population = nextGeneration(population, eliteNumber, mutationProbability)
     #population.orderRoutes()
-    print("ID: " + str(population.populationID) + "Final distance: " + str(population.population[0][0].routeLength) + " Route:" + str(population.population[0][0].route))
+    print("ID: " + str(population.populationID) + "Final distance: " + str(population.population[0][0].routeLength) + " Route:" + str(population.population[0][0].route) + "\nmutation1: " + str(mutations1) + "\nmutation2: " + str(mutations2) + "\nmutation3: " + str(mutations3))
     plt.figure(1)
     plt.plot(bestValues)
     plt.xlabel('Pokolenie')
@@ -168,20 +207,8 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     plt.show()
 
 if __name__ == "__main__":
-    #city1 = City (1, 0, 0)
-    #city2 = City (2, 1, 1)
-    #city3 = City (3, 2, 3)
-    #city4 = City (4, 5, 8)
-    #city5 = City (5, 2, 9)
-    #city6 = City (6, 9, 1)
-    #city7 = City (7, 11, 4)
-    #cities = [city1, city2, city3, city4, city5, city6, city7]
-    cities = []
-    for i in range(1, 25):
-        cities.append(City(i, int(100 * random.random()), int(100 * random.random())))
-    runAlgorithm(cities, 100, 0, 0.01, 300)
-    #pop = createInitialPopulation(20, cities)
-    #pop.orderRoutes()
-    #sel = selection (pop)
-    #children = breed (sel, 2)
-    #print ([item for item, count in collections.Counter(sel).items() if count > 1])
+    cities = readData("test1")
+    #for i in range(1, 25):
+    #    cities.append(City(i, int(100 * random.random()), int(100 * random.random())))
+    runAlgorithm(cities, 100, 10, 0.02, 2000)
+
