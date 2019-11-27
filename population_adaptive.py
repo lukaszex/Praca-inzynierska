@@ -9,6 +9,11 @@ from matplotlib import pyplot as plt
 mutations1 = 0
 mutations2 = 0
 mutations3 = 0
+mutations = [0] * 1001
+pc_max = 1
+pc_min = 0.5
+pm_max = 0.02
+pm_min = 0.01
 
 class Population:
     def __init__ (self, populationID, routesList, populationSize):
@@ -55,19 +60,25 @@ def createInitialPopulation (populationSize, cities):
 
 def selection (population, eliteNumber):
     selectedRoutes = []
+    global pc_max
+    global pc_min
     df = pd.DataFrame(np.array(population.population), columns = ['Route', 'Fitness'])
-    #population.stdDev = df.loc[:, 'Route'].std()
     df['cum_sum'] = df.Fitness.cumsum()
     df['cum_perc'] = 100*df.cum_sum/df.Fitness.sum()
     for i in range(0, eliteNumber):
         selectedRoutes.append(population.population[i][0])
     i = 0
-    while i < len(population.population) - eliteNumber:
+    while len(selectedRoutes) < population.populationSize:
         rand = 100 * random.random()
         j = 0
         while df.iat[j, 3] < rand:
             j += 1
-        selectedRoutes.append(population.population[j][0])
+        if population.population[j][0].routeLength < population.averageValue:
+            pc = pc_max
+        else:
+            pc = pc_max - (pc_max - pc_min) * (population.populationID/1000)
+        if random.random() < pc:
+            selectedRoutes.append(population.population[j][0])
         i += 1
     return selectedRoutes
 
@@ -93,11 +104,13 @@ def breed (selectedRoutes, eliteNumber):
         children.append(crossover(selectedRoutes[i - eliteNumber].route, selectedRoutes[len(selectedRoutes) - i - eliteNumber - 1].route))
     return children
 
-def mutate1 (route, mutationProbability):
+def mutate1 (route, mutationProbability, population):
     global mutations1
+    global mutations
     for i in range(len(route)):
         if random.random() < mutationProbability:
             mutations1 += 1
+            mutations[population.populationID] += 1
             j = int(random.random() * len(route))
             city1 = route[i]
             city2 = route[j]
@@ -105,11 +118,13 @@ def mutate1 (route, mutationProbability):
             route[j] = city1
     return Route(route)
 
-def mutate2 (route, mutationProbability):
+def mutate2 (route, mutationProbability, population):
     global mutations2
+    global mutations
     for i in range(len(route)):
         if random.random() < mutationProbability:
             mutations2 += 1
+            mutations[population.populationID] += 1
             j = int(random.random() * len(route))
             k = int(random.random() * len(route))
             city1 = route[i]
@@ -120,37 +135,46 @@ def mutate2 (route, mutationProbability):
             route[k] = city2
         return Route(route)
 
-def mutate3 (route, mutationProbability):
+def mutate3 (route, mutationProbability, population):
     global mutations3
+    global mutations
     for i in range(len(route)):
         if random.random() < mutationProbability:
             mutations3 += 1
+            mutations[population.populationID] += 1
             city = route[i]
             del(route[i])
             j = int(random.random() * len(route))
             route.insert(j, city)
     return Route(route)
 
-def mutatePopulation (children, eliteNumber, mutationProbability):
+def mutatePopulation (children, eliteNumber, population):
+    global pm_max
+    global pm_min
     mutatedChildren = []
     numbers = [1, 2, 3]
     for i in range(0, eliteNumber):
         mutatedChildren.append(children[i])
     for i in range(eliteNumber, len(children)):
         nr = random.choice(numbers)
+        fitness = children[i].calculateRouteLength()
+        if fitness < population.averageValue:
+            mutationProbability = pm_max
+        else:
+            mutationProbability = pm_min + (pm_max - pm_min) * (population.populationID/1000)
         if nr == 1:
-            mutatedChildren.append(mutate1(children[i].route, mutationProbability))
+            mutatedChildren.append(mutate1(children[i].route, mutationProbability, population))
         elif nr == 2:
-            mutatedChildren.append(mutate2(children[i].route, mutationProbability))
+            mutatedChildren.append(mutate2(children[i].route, mutationProbability, population))
         elif nr == 3:
-            mutatedChildren.append(mutate3(children[i].route, mutationProbability))
+            mutatedChildren.append(mutate3(children[i].route, mutationProbability, population))
     return mutatedChildren
 
 def nextGeneration (population, eliteNumber, mutationProbability):
     #population.orderRoutes()
     selectedRoutes = selection(population, eliteNumber)
     children = breed(selectedRoutes, eliteNumber)
-    mutatedChildren = mutatePopulation(children, eliteNumber, mutationProbability)
+    mutatedChildren = mutatePopulation(children, eliteNumber, population)
     newPopulation = Population(population.populationID + 1, mutatedChildren, population.populationSize)
     newPopulation.orderRoutes()
     return newPopulation
@@ -163,6 +187,7 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     secondValues = []
     thirdValues = []
     worstValues = []
+    global mutations
     population = createInitialPopulation(populationSize, cities)
     population.orderRoutes()
     for i in range(0, generations):
@@ -202,6 +227,11 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     plt.plot(secondValues, color = 'green')
     plt.plot(thirdValues, color = 'purple')
     plt.plot(worstValues, color = 'red')
+    plt.xlabel('Pokolenie')
+    plt.grid()
+    plt.show()
+    plt.figure(5)
+    plt.plot(mutations)
     plt.xlabel('Pokolenie')
     plt.grid()
     plt.show()
