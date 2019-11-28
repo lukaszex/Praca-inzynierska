@@ -69,11 +69,12 @@ def selection (population, eliteNumber):
         selectedRoutes.append(population.population[i][0])
     i = 0
     while len(selectedRoutes) < population.populationSize:
-        rand = 100 * random.random()
-        j = 0
-        while df.iat[j, 3] < rand:
-            j += 1
-        if population.population[j][0].routeLength < population.averageValue:
+        #rand = 100 * random.random()
+        #j = 0
+        #while df.iat[j, 3] < rand:
+        #    j += 1
+        j = int(random.random() * len(population.population))
+        if population.population[j][0].routeLength > population.averageValue:
             pc = pc_max
         else:
             pc = pc_max - (pc_max - pc_min) * (population.populationID/1000)
@@ -158,7 +159,7 @@ def mutatePopulation (children, eliteNumber, population):
     for i in range(eliteNumber, len(children)):
         nr = random.choice(numbers)
         fitness = children[i].calculateRouteLength()
-        if fitness < population.averageValue:
+        if fitness > population.averageValue:
             mutationProbability = pm_max
         else:
             mutationProbability = pm_min + (pm_max - pm_min) * (population.populationID/1000)
