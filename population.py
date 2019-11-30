@@ -118,7 +118,7 @@ def mutate2 (route, mutationProbability):
             route[i] = city3
             route[j] = city1
             route[k] = city2
-        return Route(route)
+    return Route(route)
 
 def mutate3 (route, mutationProbability):
     global mutations3

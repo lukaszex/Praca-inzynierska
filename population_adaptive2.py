@@ -6,14 +6,10 @@ import pandas as pd
 import collections
 from matplotlib import pyplot as plt
 
-mutations1 = 0
-mutations2 = 0
-mutations3 = 0
+mutations1 = [0] * 1001
+mutations2 = [0] * 1001
+mutations3 = [0] * 1001
 mutations = [0] * 1001
-pc_max = 1
-pc_min = 0.5
-pm_max = 0.02
-pm_min = 0.01
 
 class Population:
     def __init__ (self, populationID, routesList, populationSize):
@@ -30,14 +26,16 @@ class Population:
         self.worstValue = 0
 
     def orderRoutes (self):
-        fitnessRoutes = {}
+        #fitnessRoutes = {}
+        fitnesses = []
         for i in range(len(self.population)):
-            fitnessRoutes[self.population[i]] = self.population[i].calculateFitness()
-        self.population = sorted(fitnessRoutes.items(), key = operator.itemgetter(1), reverse = True)
+            fitnesses.append(self.population.iat[i, 0].calculateFitness())
+        self.population['Fitness'] = fitnesses
+        self.population = self.population.sort_values(by = ['Fitness'], ascending = False)
 
     def calculateLengths (self):
         for i in range(len(self.population)):
-            self.routeLengths.append(self.population[i][0].routeLength)
+            self.routeLengths.append(self.population.iat[i, 0].routeLength)
         self.routeLengths.sort()
         self.bestValue = self.routeLengths[0]
         self.secondValue = self.routeLengths[1]
@@ -54,122 +52,151 @@ def createRoute (cities):
 
 def createInitialPopulation (populationSize, cities):
     routesList = []
+    parameters = []
     for i in range(0, populationSize):
         routesList.append(createRoute(cities))
-    return Population(1, routesList, populationSize)
+    for i in range(0, populationSize):
+        parameters_tmp = []
+        for j in range(0, 3):
+            parameters_tmp.append(random.random()/40)
+        parameters.append(parameters_tmp)
+    d = {'route': routesList, 'params' : parameters}
+    df = pd.DataFrame(d)
+    return Population(1, df, populationSize)
 
 def selection (population, eliteNumber):
-    selectedRoutes = []
-    global pc_max
-    global pc_min
-    df = pd.DataFrame(np.array(population.population), columns = ['Route', 'Fitness'])
+    selectedRoutes = {}
+    df = population.population
+    #population.stdDev = df.loc[:, 'Route'].std()
     df['cum_sum'] = df.Fitness.cumsum()
     df['cum_perc'] = 100*df.cum_sum/df.Fitness.sum()
     for i in range(0, eliteNumber):
-        selectedRoutes.append(population.population[i][0])
+        selectedRoutes[population.population.iat[i, 0]] = population.population.iat[i, 1]
     i = 0
     while len(selectedRoutes) < population.populationSize:
-        #rand = 100 * random.random()
-        #j = 0
-        #while df.iat[j, 3] < rand:
-        #    j += 1
-        j = int(random.random() * len(population.population))
-        if population.population[j][0].routeLength > population.averageValue:
-            pc = pc_max
-        else:
-            pc = pc_max - (pc_max - pc_min) * (population.populationID/1000)
-        if random.random() < pc:
-            selectedRoutes.append(population.population[j][0])
+        rand = 100 * random.random()
+        j = 0
+        while df.iat[j, 4] < rand:
+            j += 1
+        selectedRoutes[population.population.iat[j, 0]] = population.population.iat[j, 1]
         i += 1
     return selectedRoutes
 
 def crossover (parent1, parent2):
-    child = []
+    parent1route = parent1[0].route
+    parent2route = parent2[0].route
+    parent1params = parent1[1]
+    parent2params = parent2[1]
+    childroute = []
     childL = []
     childP = []
-    gene1 = int(random.random() * len(parent1))
-    gene2 = int(random.random() * len(parent1))
+    childparams = []
+    gene1 = int(random.random() * len(parent1route))
+    gene2 = int(random.random() * len(parent1route))
     startGene = min(gene1, gene2)
     endGene = max(gene1, gene2)
     for i in range(startGene, endGene):
-        childL.append(parent1[i])
-    childP = [item for item in parent2 if item not in childL]
-    child = childL + childP
-    return Route(child)
+        childL.append(parent1route[i])
+    childP = [item for item in parent2route if item not in childL]
+    childroute = childL + childP
+    childroute = Route(childroute)
+    breakGene = random.choice([0, 1])
+    childparams = parent1params[:breakGene] + parent2params[breakGene:]
+    return [childroute, childparams]
+
 
 def breed (selectedRoutes, eliteNumber):
     children = []
+    #childrenTmp = []
+    selectedRoutes = list(selectedRoutes.items())
     for i in range(0, eliteNumber):
+        #children[selectedRoutes[i][0]] = selectedRoutes[i][1]
         children.append(selectedRoutes[i])
     for i in range(eliteNumber, len(selectedRoutes)):
-        children.append(crossover(selectedRoutes[i - eliteNumber].route, selectedRoutes[len(selectedRoutes) - i - eliteNumber - 1].route))
+        children.append(crossover(selectedRoutes[i - eliteNumber], selectedRoutes[len(selectedRoutes) - i - eliteNumber - 1]))
     return children
 
-def mutate1 (route, mutationProbability, population):
+def mutateParams (route):
+    params = route[1]
+    for i in params:
+        if random.random() < i:
+            rand = random.choice([0, 1])
+            if rand == 0:
+                i += random.random()/500
+            else:
+                i -= random.random()/500
+    route[1] = params
+    return route
+
+def mutate1 (route, population):
     global mutations1
     global mutations
-    for i in range(len(route)):
-        if random.random() < mutationProbability:
-            mutations1 += 1
+    routeTmp = route[0]
+    routeParams = route[1]
+    for i in range(len(routeTmp.route)):
+        if random.random() < routeParams[0]:
+            mutations1[population.populationID] += 1
             mutations[population.populationID] += 1
-            j = int(random.random() * len(route))
-            city1 = route[i]
-            city2 = route[j]
-            route[i] = city2
-            route[j] = city1
-    return Route(route)
+            j = int(random.random() * len(routeTmp.route))
+            city1 = routeTmp.route[i]
+            city2 = routeTmp.route[j]
+            routeTmp.route[i] = city2
+            routeTmp.route[j] = city1
+    route[0] = routeTmp
+    return route
 
-def mutate2 (route, mutationProbability, population):
+def mutate2 (route, population):
     global mutations2
     global mutations
-    for i in range(len(route)):
-        if random.random() < mutationProbability:
-            mutations2 += 1
+    routeTmp = route[0]
+    routeParams = route[1]
+    for i in range(len(routeTmp.route)):
+        if random.random() < routeParams[1]:
+            mutations2[population.populationID] += 1
             mutations[population.populationID] += 1
-            j = int(random.random() * len(route))
-            k = int(random.random() * len(route))
-            city1 = route[i]
-            city2 = route[j]
-            city3 = route[k]
-            route[i] = city3
-            route[j] = city1
-            route[k] = city2
-    return Route(route)
+            j = int(random.random() * len(routeTmp.route))
+            k = int(random.random() * len(routeTmp.route))
+            city1 = routeTmp.route[i]
+            city2 = routeTmp.route[j]
+            city3 = routeTmp.route[k]
+            routeTmp.route[i] = city3
+            routeTmp.route[j] = city1
+            routeTmp.route[k] = city2
+    route[0] = routeTmp
+    return route
 
-def mutate3 (route, mutationProbability, population):
+def mutate3 (route, population):
     global mutations3
     global mutations
-    for i in range(len(route)):
-        if random.random() < mutationProbability:
-            mutations3 += 1
+    routeTmp = route[0]
+    routeParams = route[1]
+    for i in range(len(routeTmp.route)):
+        if random.random() < routeParams[2]:
+            mutations3[population.populationID] += 1
             mutations[population.populationID] += 1
-            city = route[i]
-            del(route[i])
-            j = int(random.random() * len(route))
-            route.insert(j, city)
-    return Route(route)
+            city = routeTmp.route[i]
+            del(routeTmp.route[i])
+            j = int(random.random() * len(routeTmp.route))
+            routeTmp.route.insert(j, city)
+    route[0] = routeTmp
+    return route
 
 def mutatePopulation (children, eliteNumber, population):
-    global pm_max
-    global pm_min
     mutatedChildren = []
-    numbers = [1, 2, 3]
     for i in range(0, eliteNumber):
         mutatedChildren.append(children[i])
     for i in range(eliteNumber, len(children)):
-        nr = random.choice(numbers)
-        fitness = children[i].calculateRouteLength()
-        if fitness > population.averageValue:
-            mutationProbability = pm_max
-        else:
-            mutationProbability = pm_min + (pm_max - pm_min) * (population.populationID/1000)
+        mutateParams(children[i])
+    for i in range(eliteNumber, len(children)):
+        nr = children[i][1].index(max(children[i][1])) + 1
         if nr == 1:
-            mutatedChildren.append(mutate1(children[i].route, mutationProbability, population))
+            mutatedChildren.append(mutate1(children[i], population))
         elif nr == 2:
-            mutatedChildren.append(mutate2(children[i].route, mutationProbability, population))
+            mutatedChildren.append(mutate2(children[i], population))
         elif nr == 3:
-            mutatedChildren.append(mutate3(children[i].route, mutationProbability, population))
-    return mutatedChildren
+            mutatedChildren.append(mutate3(children[i], population))
+    df = pd.DataFrame(mutatedChildren, columns = ['route', 'params'])
+    return df
 
 def nextGeneration (population, eliteNumber, mutationProbability):
     #population.orderRoutes()
@@ -203,7 +230,7 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
         worstValues.append(population.worstValue)
         population = nextGeneration(population, eliteNumber, mutationProbability)
     #population.orderRoutes()
-    print("ID: " + str(population.populationID) + "Final distance: " + str(population.population[0][0].routeLength) + " Route:" + str(population.population[0][0].route) + "\nmutation1: " + str(mutations1) + "\nmutation2: " + str(mutations2) + "\nmutation3: " + str(mutations3))
+    print("ID: " + str(population.populationID) + "Final distance: " + str(population.bestValue) + " Route:" + str(population.population.iat[0, 0].route) + "\nmutation1: " + str(mutations1) + "\nmutation2: " + str(mutations2) + "\nmutation3: " + str(mutations3))
     plt.figure(1)
     plt.plot(bestValues)
     plt.xlabel('Pokolenie')
@@ -232,10 +259,13 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     plt.grid()
     plt.show()
     plt.figure(5)
-    plt.plot(mutations)
+    plt.plot(mutations1, color = 'green')
+    plt.plot(mutations2, color = 'purple')
+    plt.plot(mutations3, color = 'red')
     plt.xlabel('Pokolenie')
     plt.grid()
     plt.show()
+
 
 if __name__ == "__main__":
     cities = readData("test1")
