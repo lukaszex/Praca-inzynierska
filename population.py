@@ -207,8 +207,8 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     plt.show()
 
 if __name__ == "__main__":
-    cities = readData("test1")
+    cities = readData("test2")
     #for i in range(1, 25):
     #    cities.append(City(i, int(100 * random.random()), int(100 * random.random())))
-    runAlgorithm(cities, 100, 20, 0.02, 1000)
+    runAlgorithm(cities, 100, 10, 0.02, 1000)
 

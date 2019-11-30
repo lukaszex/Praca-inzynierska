@@ -225,8 +225,8 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     plt.show()
     plt.figure(4)
     plt.plot(bestValues, color = 'skyblue')
-    plt.plot(secondValues, color = 'green')
-    plt.plot(thirdValues, color = 'purple')
+    plt.plot(averages, color = 'green')
+    #plt.plot(thirdValues, color = 'purple')
     plt.plot(worstValues, color = 'red')
     plt.xlabel('Pokolenie')
     plt.grid()
@@ -238,7 +238,7 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     plt.show()
 
 if __name__ == "__main__":
-    cities = readData("test1")
+    cities = readData("test2")
     #for i in range(1, 25):
     #    cities.append(City(i, int(100 * random.random()), int(100 * random.random())))
     runAlgorithm(cities, 100, 20, 0.02, 1000)
