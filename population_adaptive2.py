@@ -183,12 +183,14 @@ def mutate3 (route, population):
 
 def mutatePopulation (children, eliteNumber, population):
     mutatedChildren = []
+    numbers = [1, 2, 3]
     for i in range(0, eliteNumber):
         mutatedChildren.append(children[i])
     for i in range(eliteNumber, len(children)):
         mutateParams(children[i])
     for i in range(eliteNumber, len(children)):
-        nr = children[i][1].index(max(children[i][1])) + 1
+        #nr = children[i][1].index(max(children[i][1])) + 1
+        nr = random.choices(numbers, weights = [children[i][1][0], children[i][1][1], children[i][1][2]])
         if nr == 1:
             mutatedChildren.append(mutate1(children[i], population))
         elif nr == 2:
@@ -231,44 +233,39 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
         population = nextGeneration(population, eliteNumber, mutationProbability)
     #population.orderRoutes()
     print("ID: " + str(population.populationID) + "Final distance: " + str(population.bestValue) + " Route:" + str(population.population.iat[0, 0].route) + "\nmutation1: " + str(mutations1) + "\nmutation2: " + str(mutations2) + "\nmutation3: " + str(mutations3))
-    plt.figure(1)
-    plt.plot(bestValues)
-    plt.xlabel('Pokolenie')
-    plt.ylabel('Wartość funkcji celu najlepszego osobnika')
-    plt.grid()
-    plt.show()
-    plt.figure(2)
-    plt.plot(averages, color = 'skyblue')
-    plt.plot(medians, color = 'red')
-    plt.xlabel('Pokolenie')
-    plt.ylabel('Średnia i mediana wartości funkcji celu')
-    plt.grid()
-    plt.show()
+    devsSeries = pd.Series(stdDevs)
+    rolling_mean = devsSeries.rolling(window=50).mean()
     plt.figure(3)
-    plt.plot(stdDevs)
+    plt.plot(stdDevs, label='Odchylenie standardowe wartości funkcji celu')
+    plt.plot(rolling_mean, color='black', label='Średnia krocząca')
     plt.xlabel('Pokolenie')
     plt.ylabel('Odchylenie standardowe wartości funkcji celu')
+    plt.legend()
     plt.grid()
     plt.show()
     plt.figure(4)
-    plt.plot(bestValues, color = 'skyblue')
-    plt.plot(secondValues, color = 'green')
-    plt.plot(thirdValues, color = 'purple')
-    plt.plot(worstValues, color = 'red')
+    plt.plot(bestValues, color='skyblue', label='Najlepsza wartość funkcji celu')
+    plt.plot(averages, color='green', label='Średnia wartość funkcji celu')
+    # plt.plot(thirdValues, color = 'purple')
+    plt.plot(worstValues, color='red', label='Najgorsza wartość funkcji celu')
     plt.xlabel('Pokolenie')
+    plt.ylabel('Średnia, najlepsza i najgorsza wartość funkcji celu')
+    plt.legend()
     plt.grid()
     plt.show()
     plt.figure(5)
-    plt.plot(mutations1, color = 'green')
-    plt.plot(mutations2, color = 'purple')
-    plt.plot(mutations3, color = 'red')
+    plt.plot(mutations1, color = 'green', label = 'Liczba mutacji (i)')
+    plt.plot(mutations2, color = 'purple', label = 'Liczba mutacji (ii)')
+    plt.plot(mutations3, color = 'red', label = 'Liczba mutacji (iii)')
     plt.xlabel('Pokolenie')
+    plt.ylabel('Liczba mutacji')
+    plt.legend()
     plt.grid()
     plt.show()
 
 
 if __name__ == "__main__":
-    cities = readData("test1")
+    cities = readData("test2")
     #for i in range(1, 25):
     #    cities.append(City(i, int(100 * random.random()), int(100 * random.random())))
     runAlgorithm(cities, 100, 20, 0.02, 1000)

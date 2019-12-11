@@ -9,6 +9,9 @@ from matplotlib import pyplot as plt
 mutations1 = 0
 mutations2 = 0
 mutations3 = 0
+successfulMutations1 = 0
+successfulMutations2 = 0
+successfulMutations3 = 0
 
 class Population:
     def __init__ (self, populationID, routesList, populationSize):
@@ -134,16 +137,32 @@ def mutate3 (route, mutationProbability):
 def mutatePopulation (children, eliteNumber, mutationProbability):
     mutatedChildren = []
     numbers = [1, 2, 3]
+    global successfulMutations1
+    global successfulMutations2
+    global successfulMutations3
     for i in range(0, eliteNumber):
         mutatedChildren.append(children[i])
     for i in range(eliteNumber, len(children)):
         nr = random.choice(numbers)
+        routeOld = children[i].calculateRouteLength()
         if nr == 1:
-            mutatedChildren.append(mutate1(children[i].route, mutationProbability))
+             mutatedChild = mutate1(children[i].route, mutationProbability)
+             if mutatedChild.calculateRouteLength() < routeOld:
+                 successfulMutations1 += 1
+             mutatedChildren.append(mutatedChild)
+            #mutatedChildren.append(mutate1(children[i].route, mutationProbability))
         elif nr == 2:
-            mutatedChildren.append(mutate2(children[i].route, mutationProbability))
+             mutatedChild = mutate2(children[i].route, mutationProbability)
+             if mutatedChild.calculateRouteLength() < routeOld:
+                 successfulMutations2 += 1
+             mutatedChildren.append(mutatedChild)
+            #mutatedChildren.append(mutate2(children[i].route, mutationProbability))
         elif nr == 3:
-            mutatedChildren.append(mutate3(children[i].route, mutationProbability))
+             mutatedChild = mutate3(children[i].route, mutationProbability)
+             if mutatedChild.calculateRouteLength() < routeOld:
+                 successfulMutations3 += 1
+             mutatedChildren.append(mutatedChild)
+            #mutatedChildren.append(mutate3(children[i].route, mutationProbability))
     return mutatedChildren
 
 def nextGeneration (population, eliteNumber, mutationProbability):
@@ -177,32 +196,39 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
         worstValues.append(population.worstValue)
         population = nextGeneration(population, eliteNumber, mutationProbability)
     #population.orderRoutes()
-    print("ID: " + str(population.populationID) + "Final distance: " + str(population.population[0][0].routeLength) + " Route:" + str(population.population[0][0].route) + "\nmutation1: " + str(mutations1) + "\nmutation2: " + str(mutations2) + "\nmutation3: " + str(mutations3))
-    plt.figure(1)
-    plt.plot(bestValues)
-    plt.xlabel('Pokolenie')
-    plt.ylabel('Wartość funkcji celu najlepszego osobnika')
-    plt.grid()
-    plt.show()
-    plt.figure(2)
-    plt.plot(averages, color = 'skyblue')
-    plt.plot(medians, color = 'red')
-    plt.xlabel('Pokolenie')
-    plt.ylabel('Średnia i mediana wartości funkcji celu')
-    plt.grid()
-    plt.show()
+    print("ID: " + str(population.populationID) + "Final distance: " + str(population.population[0][0].routeLength) + " Route:" + str(population.population[0][0].route) +
+          "\nmutation1: " + str(successfulMutations1/mutations1 * 100) + "\nmutation2: " + str(successfulMutations2/mutations2 * 100) + "\nmutation3: " + str(successfulMutations3/mutations3 * 100))
+    # plt.figure(1)
+    # plt.plot(bestValues)
+    # plt.xlabel('Pokolenie')
+    # plt.ylabel('Wartość funkcji celu najlepszego osobnika')
+    # plt.grid()
+    # plt.show()
+    # plt.figure(2)
+    # plt.plot(averages, color = 'skyblue')
+    # plt.plot(medians, color = 'red')
+    # plt.xlabel('Pokolenie')
+    # plt.ylabel('Średnia i mediana wartości funkcji celu')
+    # plt.grid()
+    # plt.show()
+    devsSeries = pd.Series(stdDevs)
+    rolling_mean = devsSeries.rolling(window=50).mean()
     plt.figure(3)
-    plt.plot(stdDevs)
+    plt.plot(stdDevs, label='Odchylenie standardowe wartości funkcji celu')
+    plt.plot(rolling_mean, color='black', label='Średnia krocząca')
     plt.xlabel('Pokolenie')
     plt.ylabel('Odchylenie standardowe wartości funkcji celu')
+    plt.legend()
     plt.grid()
     plt.show()
     plt.figure(4)
-    plt.plot(bestValues, color = 'skyblue')
-    plt.plot(secondValues, color = 'green')
-    plt.plot(thirdValues, color = 'purple')
-    plt.plot(worstValues, color = 'red')
+    plt.plot(bestValues, color = 'skyblue', label = 'Najlepsza wartość funkcji celu')
+    plt.plot(averages, color = 'green', label = 'Średnia wartość funkcji celu')
+    #plt.plot(thirdValues, color = 'purple')
+    plt.plot(worstValues, color = 'red', label = 'Najgorsza wartość funkcji celu')
     plt.xlabel('Pokolenie')
+    plt.ylabel('Średnia, najlepsza i najgorsza wartość funkcji celu')
+    plt.legend()
     plt.grid()
     plt.show()
 
