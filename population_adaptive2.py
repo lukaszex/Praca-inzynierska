@@ -24,6 +24,12 @@ class Population:
         self.averageValue = 0
         self.medianValue = 0
         self.worstValue = 0
+        self.mut1probs = []
+        self.mut2probs = []
+        self.mut3probs = []
+        self.mut1avg = 0
+        self.mut2avg = 0
+        self.mut3avg = 0
 
     def orderRoutes (self):
         #fitnessRoutes = {}
@@ -44,6 +50,13 @@ class Population:
         self.stdDev = np.std(self.routeLengths)
         self.medianValue = np.median(self.routeLengths)
         self.worstValue = self.routeLengths[self.populationSize - 1]
+        for i in range(len(self.population)):
+            self.mut1probs.append(self.population.iat[i, 1][0])
+            self.mut2probs.append(self.population.iat[i, 1][1])
+            self.mut3probs.append(self.population.iat[i, 1][2])
+        self.mut1avg = np.average(self.mut1probs)
+        self.mut2avg = np.average(self.mut2probs)
+        self.mut3avg = np.average(self.mut3probs)
 
 
 def createRoute (cities):
@@ -58,7 +71,7 @@ def createInitialPopulation (populationSize, cities):
     for i in range(0, populationSize):
         parameters_tmp = []
         for j in range(0, 3):
-            parameters_tmp.append(random.random()/40)
+            parameters_tmp.append(random.random()/50)
         parameters.append(parameters_tmp)
     d = {'route': routesList, 'params' : parameters}
     df = pd.DataFrame(d)
@@ -191,11 +204,11 @@ def mutatePopulation (children, eliteNumber, population):
     for i in range(eliteNumber, len(children)):
         #nr = children[i][1].index(max(children[i][1])) + 1
         nr = random.choices(numbers, weights = [children[i][1][0], children[i][1][1], children[i][1][2]])
-        if nr == 1:
+        if nr[0] == 1:
             mutatedChildren.append(mutate1(children[i], population))
-        elif nr == 2:
+        elif nr[0] == 2:
             mutatedChildren.append(mutate2(children[i], population))
-        elif nr == 3:
+        elif nr[0] == 3:
             mutatedChildren.append(mutate3(children[i], population))
     df = pd.DataFrame(mutatedChildren, columns = ['route', 'params'])
     return df
@@ -217,6 +230,9 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     secondValues = []
     thirdValues = []
     worstValues = []
+    mut1avgs = []
+    mut2avgs = []
+    mut3avgs = []
     global mutations
     population = createInitialPopulation(populationSize, cities)
     population.orderRoutes()
@@ -230,9 +246,13 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
         secondValues.append(population.secondValue)
         thirdValues.append(population.thirdValue)
         worstValues.append(population.worstValue)
+        mut1avgs.append(population.mut1avg)
+        mut2avgs.append(population.mut2avg)
+        mut3avgs.append(population.mut3avg)
         population = nextGeneration(population, eliteNumber, mutationProbability)
     #population.orderRoutes()
-    print("ID: " + str(population.populationID) + "Final distance: " + str(population.bestValue) + " Route:" + str(population.population.iat[0, 0].route) + "\nmutation1: " + str(mutations1) + "\nmutation2: " + str(mutations2) + "\nmutation3: " + str(mutations3))
+    print("ID: " + str(population.populationID) + "Final distance: " + str(population.bestValue) + " Route:" + str(population.population.iat[0, 0].route) + "\nmutation1: " + str(mut1avgs[999]) + "\nmutation2: " + str(mut2avgs[999]) + "\nmutation3: " + str(mut3avgs[999]) +
+          "\nmutation1best: " + str(population.population.iat[0, 1][0]) + "\nmutation2best: " + str(population.population.iat[0, 1][1]) + "\nmutation3best: " + str(population.population.iat[0,1][2]))
     devsSeries = pd.Series(stdDevs)
     rolling_mean = devsSeries.rolling(window=50).mean()
     plt.figure(3)
@@ -262,10 +282,19 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     plt.legend()
     plt.grid()
     plt.show()
+    plt.figure(6)
+    plt.plot(mut1avgs, color = 'green', label = 'Średnie prawdopodobieństwo mutacji (i)')
+    plt.plot(mut2avgs, color = 'purple', label = 'Średnie prawdopodobieństwo mutacji (ii)')
+    plt.plot(mut3avgs, color = 'red', label = 'Średnie prawdopodobieństwo mutacji (iii)')
+    plt.xlabel('Pokolenie')
+    plt.ylabel('Średnie prawdopodobieństwo mutacji')
+    plt.legend()
+    plt.grid()
+    plt.show()
 
 
 if __name__ == "__main__":
-    cities = readData("test2")
+    cities = readData("berlin52")
     #for i in range(1, 25):
     #    cities.append(City(i, int(100 * random.random()), int(100 * random.random())))
     runAlgorithm(cities, 100, 20, 0.02, 1000)

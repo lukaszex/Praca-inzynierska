@@ -12,7 +12,7 @@ mutations3 = 0
 mutations = [0] * 1001
 pc_max = 1
 pc_min = 0.5
-pm_max = 0.02
+pm_max = 0.05
 pm_min = 0.01
 
 class Population:
@@ -249,7 +249,7 @@ def runAlgorithm (cities, populationSize, eliteNumber, mutationProbability, gene
     plt.show()
 
 if __name__ == "__main__":
-    cities = readData("test2")
+    cities = readData("berlin52")
     #for i in range(1, 25):
     #    cities.append(City(i, int(100 * random.random()), int(100 * random.random())))
     runAlgorithm(cities, 100, 20, 0.02, 1000)
